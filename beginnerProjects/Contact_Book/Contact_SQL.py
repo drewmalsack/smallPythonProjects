@@ -11,8 +11,6 @@ def add_contact():
     for i in range(len(contact_list)):
         contact_list[i].strip()
     cursor.execute("INSERT INTO Contacts VALUES ('"+contact_list[0]+"', '"+contact_list[1]+"', '"+contact_list[2]+"')")
-    rows = cursor.execute("SELECT name, number, email FROM 'Contacts'").fetchall()
-    print(rows)
 
 
 def search_contact():
@@ -24,16 +22,47 @@ def search_contact():
 
 
 def delete_contact():
-    rows = cursor.execute("SELECT name, number, email FROM 'Contacts'").fetchall()
-    print(rows)
-    contact_rem = input("Enter name of contact you would like to delete, or exit to cancel.")
-    if contact_rem.lower == "exit":
-        return
+    contact_rem = input("Enter name of contact you would like to delete, search to see contacts, or exit to cancel.")
+    while contact_rem == "search" or contact_rem == "exit":
+        if contact_rem == "exit":
+            return
+        elif contact_rem == "search":
+            rows = cursor.execute("SELECT name, number, email FROM 'Contacts'").fetchall()
+            print(rows)
+            contact_rem = input(
+                "Enter name of contact you would like to delete, search to see contacts, or exit to cancel.")
     cursor.execute("DELETE FROM 'Contacts' Where name = '"+contact_rem+"'")
 
 
 def commit():
     connection.commit()
+
+
+def edit_contact():
+
+    contact_edit = input("Enter name of contact you would like to edit, search to see contacts, or exit to cancel.")
+    while contact_edit == "search" or contact_edit == "exit":
+        if contact_edit == "exit":
+            return
+        elif contact_edit == "search":
+            rows = cursor.execute("SELECT name, number, email FROM 'Contacts'").fetchall()
+            print(rows)
+            contact_edit = input("Enter name of contact you would like to edit, search to see contacts,"
+                                 " or exit to cancel.")
+
+    rows = cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_edit + "'").fetchone()
+    print(rows)
+    temp = contact_edit
+    contact_edit = input("Enter new info in format [name, number, email] without brackets, or exit to cancel")
+    if contact_edit == "exit":
+        return
+
+    contact_list = contact_edit.split(",")
+    for i in range(len(contact_list)):
+        contact_list[i].strip()
+
+    cursor.execute("INSERT INTO Contacts VALUES ('"+contact_list[0]+"', '"+contact_list[1]+"', '"+contact_list[2]+"')")
+    cursor.execute("DELETE FROM 'Contacts' Where name = '" + temp + "'")
 
 
 if __name__ == '__main__':
@@ -44,8 +73,9 @@ if __name__ == '__main__':
         print("1 for add contact")
         print("2 for search contact")
         print("3 for delete contact")
-        print("4 commit changes")
-        print("5 to exit")
+        print("4 for edit contact")
+        print("5 to commit changes")
+        print("6 to exit")
         choice = input("Enter choice")
         if choice == "1":
             add_contact()
@@ -54,6 +84,9 @@ if __name__ == '__main__':
         elif choice == "3":
             delete_contact()
         elif choice == "4":
+            edit_contact()
+        elif choice == "5":
             commit()
         else:
+            connection.close()
             break
