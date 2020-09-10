@@ -115,7 +115,7 @@ class DeleteWindow(QtWidgets.QWidget):
 
 class SearchWindow(QtWidgets.QWidget):
 
-    switch_window = QtCore.pyqtSignal()
+    switch_window = QtCore.pyqtSignal(str)
 
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
@@ -130,7 +130,7 @@ class SearchWindow(QtWidgets.QWidget):
         self.searchButton.clicked.connect(self.sql_search)
 
         self.backButton = QtWidgets.QPushButton("Back")
-        self.backButton.clicked.connect(self.send_control)
+        self.backButton.clicked.connect(lambda: self.send_control("Back S"))
 
         layout.addWidget(self.searchButton)
         layout.addWidget(self.backButton)
@@ -140,11 +140,65 @@ class SearchWindow(QtWidgets.QWidget):
 
     def sql_search(self):
         contact_search = self.line_edit.text()
-        rows = cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_search + "'").fetchone()
+        rows = str(cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_search + "'").fetchone())
         self.line_edit.setText(str(rows))
+        if rows != "None":
+            rows = rows.replace('(', "")
+            rows = rows.replace(')', "")
+            rows = rows.replace('\'', "")
+        self.send_control("SearchR"+rows)
 
-    def send_control(self):
-        self.switch_window.emit()
+    def send_control(self, text):
+        self.switch_window.emit(text)
+
+
+class ShowResults(QtWidgets.QWidget):
+
+    def __init__(self, text):
+        QtWidgets.QWidget.__init__(self)
+        self.setWindowTitle("SQLite GUI")
+
+        rows = text.replace("SearchR", "")
+        if rows != "None":
+            contact_list = rows.split(",")
+            for i in range(len(contact_list)):
+                contact_list[i].lstrip()
+            name = contact_list[0]
+            number = contact_list[1]
+            email = contact_list[2]
+        else:
+            name = rows
+            number = rows
+            email = rows
+
+        layout = QtWidgets.QGridLayout()
+
+        self.name_label = QtWidgets.QLabel("Name")
+        self.number_label = QtWidgets.QLabel("Number")
+        self.email_label = QtWidgets.QLabel("Email")
+
+        self.name_line = QtWidgets.QLineEdit()
+        self.name_line.setText(name)
+        self.name_line.setReadOnly(True)
+
+        self.number_line = QtWidgets.QLineEdit()
+        self.number_line.setText(number)
+        self.number_line.setReadOnly(True)
+
+        self.email_line = QtWidgets.QLineEdit()
+        self.email_line.setText(email)
+        self.email_line.setReadOnly(True)
+
+        layout.addWidget(self.name_label, 0, 0)
+        layout.addWidget(self.name_line, 0, 1)
+
+        layout.addWidget(self.number_label, 1, 0)
+        layout.addWidget(self.number_line, 1, 1)
+
+        layout.addWidget(self.email_label, 2, 0)
+        layout.addWidget(self.email_line, 2, 1)
+
+        self.setLayout(layout)
 
 
 class Controller:
@@ -162,6 +216,8 @@ class Controller:
         elif text == "Search":
             self.mainw.close()
             self.show_search()
+        elif "SearchR" in text:
+            self.show_searchr(text)
         elif "Back" in text:
             print(text[5])
             if text[5] == "I":
@@ -189,8 +245,12 @@ class Controller:
 
     def show_search(self):
         self.searchw = SearchWindow()
-        self.searchw.switch_window.connect(lambda: self.choose_window("Back S"))
+        self.searchw.switch_window.connect(self.choose_window)
         self.searchw.show()
+
+    def show_searchr(self, text):
+        self.searchr = ShowResults(text)
+        self.searchr.show()
 
 
 def main():
