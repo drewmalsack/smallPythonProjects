@@ -18,7 +18,7 @@ class MainWindow(QtWidgets.QWidget):
 
         layout = QtWidgets.QGridLayout()
 
-        # Creating buttons for Main Window to access other menus
+        # Creating buttons for Main Window to access other menus and closing program
         self.insertButton = QtWidgets.QPushButton("Insert")
         self.insertButton.clicked.connect(lambda: self.send_control(self.insertButton.text()))
         self.deleteButton = QtWidgets.QPushButton("Delete")
@@ -29,6 +29,9 @@ class MainWindow(QtWidgets.QWidget):
         self.editButton.clicked.connect(lambda: self.send_control(self.editButton.text()))
         self.commitButton = QtWidgets.QPushButton("Commit")
         self.commitButton.clicked.connect(self.commit)
+        self.exitButton = QtWidgets.QPushButton("Exit")
+        self.exitButton.clicked.connect(self.close)
+
 
         # adding to layout
         layout.addWidget(self.insertButton)
@@ -36,6 +39,7 @@ class MainWindow(QtWidgets.QWidget):
         layout.addWidget(self.searchButton)
         layout.addWidget(self.editButton)
         layout.addWidget(self.commitButton)
+        layout.addWidget(self.exitButton)
 
         self.setLayout(layout)
 
@@ -59,8 +63,15 @@ class InsertWindow(QtWidgets.QWidget):
 
         layout = QtWidgets.QGridLayout()
 
-        self.line_edit = QtWidgets.QLineEdit()
-        self.line_edit.setText("Format: {name, number, email} without brackets")
+        self.name_line = QtWidgets.QLineEdit()
+
+        self.number_line = QtWidgets.QLineEdit()
+
+        self.email_line = QtWidgets.QLineEdit()
+
+        self.name_label = QtWidgets.QLabel("Name")
+        self.number_label = QtWidgets.QLabel("Number")
+        self.email_label = QtWidgets.QLabel("Email")
 
         self.insertButton = QtWidgets.QPushButton("Insert")
         self.insertButton.clicked.connect(self.sql_insert)
@@ -68,16 +79,21 @@ class InsertWindow(QtWidgets.QWidget):
         self.backButton = QtWidgets.QPushButton("Back")
         self.backButton.clicked.connect(self.send_control)
 
-        layout.addWidget(self.insertButton)
-        layout.addWidget(self.backButton)
-        layout.addWidget(self.line_edit)
+        layout.addWidget(self.name_label, 0, 0)
+        layout.addWidget(self.name_line, 0, 1)
+        layout.addWidget(self.number_label, 1, 0)
+        layout.addWidget(self.number_line, 1, 1)
+        layout.addWidget(self.email_label, 2, 0)
+        layout.addWidget(self.email_line, 2, 1)
+        layout.addWidget(self.insertButton, 3, 0)
+        layout.addWidget(self.backButton, 3, 1)
 
         self.setLayout(layout)
 
     # handles checking input text for format and inserting into database
     def sql_insert(self):
         pattern = re.compile(r'[a-z]+[,]\s[0-9a-z]+[,]\s[a-z0-9]+[@][a-z]+[.][a-z]+', re.IGNORECASE)
-        contact_add = self.line_edit.text()
+        contact_add = self.name_line.text()+", "+self.number_line.text()+", "+self.email_line.text()
         if re.search(pattern, contact_add):
             contact_list = contact_add.split(",")
             for i in range(len(contact_list)):
@@ -194,8 +210,8 @@ class SearchWindow(QtWidgets.QWidget):
     # handles searching database and eventually text formatting
     def sql_search(self):
         contact_search = self.line_edit.text()
-        rows = str(cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_search + "'").fetchone())
-        self.line_edit.setText(str(rows))
+        rows = str(cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_search + "'").fetchall())
+        #print(str(rows))
         if rows != "None":
             rows = rows.replace('(', "")
             rows = rows.replace(')', "")
@@ -215,45 +231,71 @@ class ShowResults(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("SQLite GUI")
 
+        number = ""
+        email = ""
+
+        # formatting string received from other function
         rows = text.replace("SearchR", "")
+        rows = rows.replace("[", "")
+        rows = rows.replace("]", "")
+        rows = rows.replace(" ", "")
+
+        # additional formatting and cutting string into list
         if rows != "None":
             contact_list = rows.split(",")
             for i in range(len(contact_list)):
                 contact_list[i].lstrip()
+            for i in range(int(len(contact_list)/3)):
+                number = number + contact_list[3*i+1] + ","
+                email = email + contact_list[3*i+2] + ","
             name = contact_list[0]
-            number = contact_list[1]
-            email = contact_list[2]
         else:
             name = rows
             number = rows
             email = rows
 
+        # taking strings from contact_list and splitting them into specific lists for drop down menus
+        number_list = number.split(",")
+        email_list = email.split(",")
+
         layout = QtWidgets.QGridLayout()
 
+        # labels for menu
         self.name_label = QtWidgets.QLabel("Name")
         self.number_label = QtWidgets.QLabel("Number")
         self.email_label = QtWidgets.QLabel("Email")
 
+        # line edit for name and drop down lists for number and email fields
         self.name_line = QtWidgets.QLineEdit()
         self.name_line.setText(name)
         self.name_line.setReadOnly(True)
 
-        self.number_line = QtWidgets.QLineEdit()
-        self.number_line.setText(number)
-        self.number_line.setReadOnly(True)
+        # loops for adding content into specific drop down lists
+        self.number_box = QtWidgets.QComboBox()
+        for i in range(len(number_list)-1):
+            self.number_box.addItem(number_list[i])
+        #self.number_line.setText(number)
+        #self.number_line.setReadOnly(True)
 
-        self.email_line = QtWidgets.QLineEdit()
-        self.email_line.setText(email)
-        self.email_line.setReadOnly(True)
+        self.email_box = QtWidgets.QComboBox()
+        for i in range(len(email_list)-1):
+            self.email_box.addItem(email_list[i])
+        #self.email_line.setText(email)
+        #self.email_line.setReadOnly(True)
+
+        self.ok_button = QtWidgets.QPushButton("OK")
+        self.ok_button.clicked.connect(self.close)
 
         layout.addWidget(self.name_label, 0, 0)
         layout.addWidget(self.name_line, 0, 1)
 
         layout.addWidget(self.number_label, 1, 0)
-        layout.addWidget(self.number_line, 1, 1)
+        layout.addWidget(self.number_box, 1, 1)
 
         layout.addWidget(self.email_label, 2, 0)
-        layout.addWidget(self.email_line, 2, 1)
+        layout.addWidget(self.email_box, 2, 1)
+
+        layout.addWidget(self.ok_button, 3, 1)
 
         self.setLayout(layout)
 
@@ -279,7 +321,6 @@ class Controller:
         elif "SearchR" in text:
             self.show_searchr(text)
         elif "Back" in text:
-            print(text[5])
             if text[5] == "I":
                 self.insertw.close()
             elif text[5] == "D":
