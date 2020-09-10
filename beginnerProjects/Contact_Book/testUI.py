@@ -1,11 +1,13 @@
 import sqlite3
 import sys
+import re
 from PyQt5 import QtCore, QtWidgets
 
 connection = sqlite3.connect("contacts.db")
 cursor = connection.cursor()
 
 
+# main window with buttons to other menus
 class MainWindow(QtWidgets.QWidget):
 
     switch_window = QtCore.pyqtSignal(str)
@@ -16,6 +18,7 @@ class MainWindow(QtWidgets.QWidget):
 
         layout = QtWidgets.QGridLayout()
 
+        # Creating buttons for Main Window to access other menus
         self.insertButton = QtWidgets.QPushButton("Insert")
         self.insertButton.clicked.connect(lambda: self.send_control(self.insertButton.text()))
         self.deleteButton = QtWidgets.QPushButton("Delete")
@@ -27,6 +30,7 @@ class MainWindow(QtWidgets.QWidget):
         self.commitButton = QtWidgets.QPushButton("Commit")
         self.commitButton.clicked.connect(self.commit)
 
+        # adding to layout
         layout.addWidget(self.insertButton)
         layout.addWidget(self.deleteButton)
         layout.addWidget(self.searchButton)
@@ -44,6 +48,7 @@ class MainWindow(QtWidgets.QWidget):
         self.confirmw.show()
 
 
+# window for inserting into database
 class InsertWindow(QtWidgets.QWidget):
 
     switch_window = QtCore.pyqtSignal()
@@ -69,21 +74,30 @@ class InsertWindow(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+    # handles checking input text for format and inserting into database
     def sql_insert(self):
+        pattern = re.compile(r'[a-z]+[,]\s[0-9a-z]+[,]\s[a-z0-9]+[@][a-z]+[.][a-z]+', re.IGNORECASE)
         contact_add = self.line_edit.text()
-        contact_list = contact_add.split(",")
-        for i in range(len(contact_list)):
-            contact_list[i].strip()
-        cursor.execute(
-            "INSERT INTO Contacts VALUES ('" + contact_list[0] + "', '" + contact_list[1] + "', '" + contact_list[
-                2] + "')")
-        self.confirmw = ConfirmWindow("Insert")
-        self.confirmw.show()
+        if re.search(pattern, contact_add):
+            contact_list = contact_add.split(",")
+            for i in range(len(contact_list)):
+                contact_list[i].strip()
+            cursor.execute(
+                "INSERT INTO Contacts VALUES ('" + contact_list[0] + "', '" + contact_list[1] + "', '" + contact_list[
+                    2] + "')")
+            self.confirmw = ConfirmWindow("Insert")
+            self.confirmw.show()
+        else:
+            self.confirmw = ConfirmWindow("Wrong")
+            self.confirmw.show()
 
+    # sends signal to controller to open relevent window
     def send_control(self):
         self.switch_window.emit()
 
 
+# window confirms action, can be opened from multiple other windows and shows relevant info based on which window opened
+# it
 class ConfirmWindow(QtWidgets.QWidget):
 
     def __init__(self, text):
@@ -97,12 +111,15 @@ class ConfirmWindow(QtWidgets.QWidget):
         self.ok_button = QtWidgets.QPushButton("OK")
         self.ok_button.clicked.connect(self.close)
 
+        # if statements to control what to say depending on what window opened this window
         if text == "Insert":
             self.confirm_label.setText("Contact added Successfully.")
         elif text == "Delete":
             self.confirm_label.setText("Contact Deleted.")
         elif text == "Commit":
             self.confirm_label.setText("Changes Committed.")
+        else:
+            self.confirm_label.setText("Input is in wrong format")
 
         layout.addWidget(self.confirm_label)
         layout.addWidget(self.ok_button)
@@ -110,6 +127,7 @@ class ConfirmWindow(QtWidgets.QWidget):
         self.setLayout(layout)
 
 
+# window for deleting from database
 class DeleteWindow(QtWidgets.QWidget):
 
     switch_window = QtCore.pyqtSignal()
@@ -135,16 +153,19 @@ class DeleteWindow(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+    # handles deleting from database and eventually making sure text format is right
     def sql_delete(self):
         contact_rem = self.line_edit.text()
         cursor.execute("DELETE FROM 'Contacts' Where name = '" + contact_rem + "'")
         self.confirmw = ConfirmWindow("Delete")
         self.confirmw.show()
 
+    # sends to controller to handle which window to open
     def send_control(self):
         self.switch_window.emit()
 
 
+# window to search database
 class SearchWindow(QtWidgets.QWidget):
 
     switch_window = QtCore.pyqtSignal(str)
@@ -170,6 +191,7 @@ class SearchWindow(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+    # handles searching database and eventually text formatting
     def sql_search(self):
         contact_search = self.line_edit.text()
         rows = str(cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_search + "'").fetchone())
@@ -180,10 +202,13 @@ class SearchWindow(QtWidgets.QWidget):
             rows = rows.replace('\'', "")
         self.send_control("SearchR"+rows)
 
+    # send to controller to open the next window
     def send_control(self, text):
         self.switch_window.emit(text)
 
 
+# window called from SearchWindow to show results from search, only works with one entry. may expand to see multiple
+# entries in the future
 class ShowResults(QtWidgets.QWidget):
 
     def __init__(self, text):
@@ -233,11 +258,14 @@ class ShowResults(QtWidgets.QWidget):
         self.setLayout(layout)
 
 
+# Controller class receives signals from other window classes and controller opening and closing of windows
 class Controller:
 
     def __init__(self):
         pass
 
+    # receives text from current window and sends control to method to open next window. closes current window if
+    # necessary
     def choose_window(self, text):
         if text == "Insert":
             self.mainw.close()
@@ -260,6 +288,8 @@ class Controller:
                 self.searchw.close()
             self.show_main()
 
+    # these methods create instances of window classes they are tied to, handle receiving of signals from those classes
+    # opens the window and send signals to choose_window method to choose next window to open
     def show_main(self):
         self.mainw = MainWindow()
         self.mainw.switch_window.connect(self.choose_window)
@@ -285,6 +315,7 @@ class Controller:
         self.searchr.show()
 
 
+# main method
 def main():
     app = QtWidgets.QApplication(sys.argv)
     controller = Controller()
