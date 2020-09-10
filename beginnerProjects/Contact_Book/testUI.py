@@ -40,6 +40,8 @@ class MainWindow(QtWidgets.QWidget):
 
     def commit(self):
         connection.commit()
+        self.confirmw = ConfirmWindow("Commit")
+        self.confirmw.show()
 
 
 class InsertWindow(QtWidgets.QWidget):
@@ -75,9 +77,37 @@ class InsertWindow(QtWidgets.QWidget):
         cursor.execute(
             "INSERT INTO Contacts VALUES ('" + contact_list[0] + "', '" + contact_list[1] + "', '" + contact_list[
                 2] + "')")
+        self.confirmw = ConfirmWindow("Insert")
+        self.confirmw.show()
 
     def send_control(self):
         self.switch_window.emit()
+
+
+class ConfirmWindow(QtWidgets.QWidget):
+
+    def __init__(self, text):
+        QtWidgets.QWidget.__init__(self)
+        self.setWindowTitle("Confirm")
+
+        layout = QtWidgets.QGridLayout()
+
+        self.confirm_label = QtWidgets.QLabel()
+
+        self.ok_button = QtWidgets.QPushButton("OK")
+        self.ok_button.clicked.connect(self.close)
+
+        if text == "Insert":
+            self.confirm_label.setText("Contact added Successfully.")
+        elif text == "Delete":
+            self.confirm_label.setText("Contact Deleted.")
+        elif text == "Commit":
+            self.confirm_label.setText("Changes Committed.")
+
+        layout.addWidget(self.confirm_label)
+        layout.addWidget(self.ok_button)
+
+        self.setLayout(layout)
 
 
 class DeleteWindow(QtWidgets.QWidget):
@@ -108,6 +138,8 @@ class DeleteWindow(QtWidgets.QWidget):
     def sql_delete(self):
         contact_rem = self.line_edit.text()
         cursor.execute("DELETE FROM 'Contacts' Where name = '" + contact_rem + "'")
+        self.confirmw = ConfirmWindow("Delete")
+        self.confirmw.show()
 
     def send_control(self):
         self.switch_window.emit()
