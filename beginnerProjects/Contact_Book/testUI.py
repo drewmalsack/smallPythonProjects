@@ -32,7 +32,6 @@ class MainWindow(QtWidgets.QWidget):
         self.exitButton = QtWidgets.QPushButton("Exit")
         self.exitButton.clicked.connect(self.close)
 
-
         # adding to layout
         layout.addWidget(self.insertButton)
         layout.addWidget(self.deleteButton)
@@ -211,7 +210,6 @@ class SearchWindow(QtWidgets.QWidget):
     def sql_search(self):
         contact_search = self.line_edit.text()
         rows = str(cursor.execute("SELECT * FROM 'Contacts' WHERE name='" + contact_search + "'").fetchall())
-        #print(str(rows))
         if rows != "None":
             rows = rows.replace('(', "")
             rows = rows.replace(')', "")
@@ -274,14 +272,14 @@ class ShowResults(QtWidgets.QWidget):
         self.number_box = QtWidgets.QComboBox()
         for i in range(len(number_list)-1):
             self.number_box.addItem(number_list[i])
-        #self.number_line.setText(number)
-        #self.number_line.setReadOnly(True)
+        # self.number_line.setText(number)
+        # self.number_line.setReadOnly(True)
 
         self.email_box = QtWidgets.QComboBox()
         for i in range(len(email_list)-1):
             self.email_box.addItem(email_list[i])
-        #self.email_line.setText(email)
-        #self.email_line.setReadOnly(True)
+        # self.email_line.setText(email)
+        # self.email_line.setReadOnly(True)
 
         self.ok_button = QtWidgets.QPushButton("OK")
         self.ok_button.clicked.connect(self.close)
